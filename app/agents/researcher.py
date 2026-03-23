@@ -10,7 +10,6 @@ def researcher_node(state: AgentState) -> AgentState:
     plan = state.get("plan", "")
     research_plan = state.get("research_plan", {})
     profile = infer_task_profile(task)
-    model = create_chat_model(role="worker")
     headings = ", ".join(profile.research_headings)
 
     prompt = [
@@ -31,6 +30,7 @@ def researcher_node(state: AgentState) -> AgentState:
     ]
     fallback = profile.research_fallback
     try:
+        model = create_chat_model(role="worker")
         response = model.invoke(prompt)
         notes = coerce_text(response.content, fallback)
     except Exception:

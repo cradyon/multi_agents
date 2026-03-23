@@ -12,7 +12,6 @@ def executor_node(state: AgentState) -> AgentState:
     file_plan = state.get("file_plan", {})
     command_plan = state.get("command_plan", {})
     profile = infer_task_profile(task)
-    model = create_chat_model(role="worker")
     headings = ", ".join(profile.execution_headings)
 
     prompt = [
@@ -35,6 +34,7 @@ def executor_node(state: AgentState) -> AgentState:
     ]
     fallback = profile.execution_fallback
     try:
+        model = create_chat_model(role="worker")
         response = model.invoke(prompt)
         notes = coerce_text(response.content, fallback)
     except Exception:

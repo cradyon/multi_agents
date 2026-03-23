@@ -17,7 +17,6 @@ def synthesizer_node(state: AgentState) -> AgentState:
     file_plan = state.get("file_plan", {})
     command_plan = state.get("command_plan", {})
     profile = infer_task_profile(task)
-    model = create_chat_model(role="synthesizer")
     headings = ", ".join(profile.final_headings)
 
     prompt = [
@@ -42,6 +41,7 @@ def synthesizer_node(state: AgentState) -> AgentState:
     ]
     fallback = _fallback_final_response(task)
     try:
+        model = create_chat_model(role="synthesizer")
         response = model.invoke(prompt)
         final_response = coerce_text(response.content, fallback)
     except Exception:

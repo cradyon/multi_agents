@@ -121,6 +121,27 @@ Then open:
 
 - [http://127.0.0.1:8765](http://127.0.0.1:8765)
 
+If `8765` is already in use, switch to another port such as `8766`.
+
+## Offline / Fallback Behavior
+
+This starter is runnable even when a model call fails or external network access is unavailable.
+
+- the FastAPI app still starts
+- the LangGraph workflow still completes
+- each agent falls back to a deterministic local response
+- thread artifacts are still written under `APP_DEMO/threads/`
+
+That makes the repo usable as a local demo project first, and a live LLM-backed project second.
+
+## Run Tests
+
+With the existing virtual environment:
+
+```bash
+./.venv/bin/python -m unittest discover -s tests -v
+```
+
 ### 5. Run the API directly
 
 ```bash

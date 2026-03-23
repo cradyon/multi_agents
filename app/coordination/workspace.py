@@ -40,6 +40,8 @@ class CoordinationWorkspace:
                 "task": task,
                 "workers": [worker.worker_id for worker in WORKERS],
                 "status": "running",
+                "detail": "Thread initialized and waiting for planner.",
+                "current_step": "queued",
             },
         )
         self._write_markdown(
@@ -113,9 +115,37 @@ class CoordinationWorkspace:
         thread_file = thread_dir / "thread.json"
         payload = self._read_json(thread_file)
         payload["status"] = "completed"
+        payload["detail"] = "Workflow completed."
+        payload["current_step"] = "completed"
         payload["final_response_preview"] = final_response[:280]
         self._write_json(thread_file, payload)
         self._write_markdown(thread_dir / "final.md", [final_response.strip() or "_No final response._"])
+
+    def fail_thread(self, thread_id: str, error: str) -> None:
+        thread_file = self._thread_dir(thread_id) / "thread.json"
+        payload = self._read_json(thread_file)
+        payload["status"] = "failed"
+        payload["detail"] = error
+        payload["current_step"] = "failed"
+        self._write_json(thread_file, payload)
+
+    def update_thread(
+        self,
+        thread_id: str,
+        *,
+        status: str | None = None,
+        detail: str | None = None,
+        current_step: str | None = None,
+    ) -> None:
+        thread_file = self._thread_dir(thread_id) / "thread.json"
+        payload = self._read_json(thread_file)
+        if status is not None:
+            payload["status"] = status
+        if detail is not None:
+            payload["detail"] = detail
+        if current_step is not None:
+            payload["current_step"] = current_step
+        self._write_json(thread_file, payload)
 
     def _initialize_worker(self, thread_dir: Path, task: str, worker: WorkerSpec) -> None:
         worker_dir = thread_dir / "agents" / worker.worker_id
