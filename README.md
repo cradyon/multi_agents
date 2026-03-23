@@ -1,48 +1,59 @@
 # Multi-Agent Starter
 
-这是一个从零起步的 `LangGraph multi-agent` MVP，方向参考了 DeerFlow，但刻意先收敛成一个更容易跑通的骨架。
+A `LangGraph`-based multi-agent starter inspired by DeerFlow, scoped down into a practical repo you can run, inspect, and extend.
 
-当前版本包含 4 个角色：
+This project focuses on three things:
 
-- `planner`: 判断任务走研究、执行还是两者都走
-- `researcher`: 产出背景分析、假设和风险
-- `executor`: 把任务转成实现草案、接口设计或编码步骤
-- `synthesizer`: 汇总前面三个角色，输出最终答案
+- a clear multi-agent backend skeleton
+- visible thread and agent artifacts under the project directory
+- a lightweight FastAPI web console for running tasks and inspecting outputs
 
-现在已经不是单纯的 4 个角色 demo，而是把你说的几个 phase 合到了一起：
+## What It Includes
 
-- `phase 1`: graph / state / model wiring
-- `phase 2`: tools 规划层
-- `phase 3`: SQLite checkpoint + memory
-- `phase 4`: FastAPI service layer
+- `planner`: decides whether the task should research, execute, or do both
+- `researcher`: produces background notes and structured findings
+- `executor`: turns the task into an actionable plan or implementation draft
+- `synthesizer`: merges the upstream outputs into the final response
 
-## 目录
+The current starter already combines the first four build phases:
+
+- `phase 1`: graph, state, and model wiring
+- `phase 2`: tool planning layer
+- `phase 3`: SQLite checkpoint and memory
+- `phase 4`: FastAPI service and web UI
+
+## Repo Layout
 
 ```text
 app/
   agents/
-    planner.py
-    researcher.py
-    executor.py
-    synthesizer.py
   api/
+  coordination/
+  persistence/
+  tools/
   config.py
   graph.py
   llm.py
   main.py
-  persistence/
+  server.py
   service.py
   state.py
-  tools/
 APP_DEMO/
   scripts/
-  threads/
   workflows/
 ```
 
-## 1. 安装依赖
+Notes:
 
-推荐用 `uv`：
+- runtime artifacts are intentionally ignored from git
+- generated threads are written to `APP_DEMO/threads/<thread_id>/`
+- demo scripts and workflow assets are grouped under `APP_DEMO/`
+
+## Quick Start
+
+### 1. Create a virtual environment
+
+Using `uv`:
 
 ```bash
 uv venv
@@ -50,7 +61,7 @@ source .venv/bin/activate
 uv pip install -e .
 ```
 
-也可以用 `pip`：
+Using `pip`:
 
 ```bash
 python -m venv .venv
@@ -58,24 +69,20 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-## 2. 配置模型
+### 2. Add environment variables
 
-复制环境变量模板：
+Create a local `.env` file in the repo root.
 
-```bash
-cp .env.example .env
-```
-
-默认使用 `OpenRouter`：
+OpenRouter example:
 
 ```env
 MODEL_VENDOR=openrouter
 OPENROUTER_API_KEY=your_openrouter_api_key
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
-OPENROUTER_MODEL=anthropic/claude-sonnet-4.5
+OPENROUTER_MODEL=openrouter/free
 ```
 
-如果要切到 OpenAI：
+OpenAI example:
 
 ```env
 MODEL_VENDOR=openai
@@ -83,45 +90,49 @@ OPENAI_API_KEY=your_openai_api_key
 OPENAI_MODEL=gpt-4.1
 ```
 
-如果要切到 Volcengine / 火山方舟：
+Volcengine example:
 
 ```env
 MODEL_VENDOR=volcengine
 VOLCENGINE_API_KEY=your_volcengine_api_key
 VOLCENGINE_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
-VOLCENGINE_MODEL=doubao-seed-1-6-250615
+VOLCENGINE_MODEL=doubao-seed-2-0-mini-260215
 ```
 
-## 3. 运行
+### 3. Run a task from the CLI
 
 ```bash
 python -m app.main "给我设计一个类似 DearFlow 的 multi-agent coding assistant MVP"
 ```
 
-或：
+or:
 
 ```bash
 multi-agent "给我设计一个类似 DearFlow 的 multi-agent coding assistant MVP"
 ```
 
-启动 API：
+### 4. Run the web server
 
 ```bash
-uvicorn app.server:app --reload
+uvicorn app.server:app --host 127.0.0.1 --port 8765
 ```
 
-测试接口：
+Then open:
+
+- [http://127.0.0.1:8765](http://127.0.0.1:8765)
+
+### 5. Run the API directly
 
 ```bash
-curl http://127.0.0.1:8000/api/health
-curl -X POST http://127.0.0.1:8000/api/tasks/run \
+curl http://127.0.0.1:8765/api/health
+curl -X POST http://127.0.0.1:8765/api/tasks/run \
   -H "Content-Type: application/json" \
   -d '{"task":"设计一个 LangGraph multi-agent coding assistant","thread_id":"demo-thread"}'
 ```
 
-## 4. 可见的多 Worker 目录
+## Visible Thread Artifacts
 
-你刚刚提到，希望在项目目录里直接看到多个 agent/thread 的 stride。这版已经支持把每次运行写到可见目录里：
+Every run is written into a project-visible workspace:
 
 ```text
 APP_DEMO/threads/<thread_id>/
@@ -133,80 +144,89 @@ APP_DEMO/threads/<thread_id>/
       status.md
       context.json
       output.md
+      log.md
     agent-b-researcher/
       status.md
       context.json
       output.md
+      log.md
     agent-c-executor/
       status.md
       context.json
       output.md
+      log.md
     agent-d-synthesizer/
       status.md
       context.json
       output.md
+      log.md
 ```
 
-这样你在项目里就能直接看到：
+This makes it easy to inspect:
 
-- 哪个 thread 正在跑
-- Agent A/B/C/D 分别负责什么
-- 每个 agent 当前状态
-- 每个 agent 的输出内容
-- 最终汇总结果
+- which thread ran
+- what each worker did
+- whether a step completed, skipped, or failed
+- the final synthesized answer
 
-这个目录不是“外挂 sidecar”，而是主项目自己的运行产物层：
+The coordination layer lives in [workspace.py](/Users/kevin/AGIProj/multi-agent/app/coordination/workspace.py), and the main workflow integration lives in [service.py](/Users/kevin/AGIProj/multi-agent/app/service.py).
 
-- 代码在 [app/coordination/workspace.py](/Users/kevin/AGIProj/multi-agent/app/coordination/workspace.py)
-- 运行产物在 `APP_DEMO/threads/<thread_id>/...`
-- 主服务在 [app/service.py](/Users/kevin/AGIProj/multi-agent/app/service.py) 里会直接写它
+## Demo Assets
 
-如果你想先看不依赖外部包的演示，可以直接跑：
+### Demo scripts
 
-```bash
-python3 APP_DEMO/scripts/run_demo.py
-```
+- `python3 APP_DEMO/scripts/run_demo.py`
+- `python3 APP_DEMO/scripts/render_workflow.py`
+- `python3 APP_DEMO/scripts/render_workflow_jpg.py`
 
-它会在主项目下生成：
+### Workflow previews
 
-```text
-APP_DEMO/threads/live-demo-thread/
-```
+Current workflow:
 
-这就是“合到主项目里”的版本，不是额外的独立项目。
+![Current Workflow](/Users/kevin/AGIProj/multi-agent/APP_DEMO/workflows/workflow-current.jpg)
 
-## 5. 画出 Workflow 图
+Future parallel workflow:
 
-如果你想把当前 LangGraph workflow 导出成图，可以直接跑：
+![Future Parallel Workflow](/Users/kevin/AGIProj/multi-agent/APP_DEMO/workflows/workflow-future-parallel.jpg)
 
-```bash
-python3 APP_DEMO/scripts/render_workflow.py
-```
+## Current Status
 
-它会生成：
+This repo is a good starter for:
 
-- `APP_DEMO/workflows/workflow.mmd`
-- `APP_DEMO/workflows/workflow.md`
+- LangGraph orchestration experiments
+- visible agent-thread coordination
+- model-vendor abstraction
+- backend-first multi-agent product prototyping
 
-其中 `workflow.md` 里是可直接渲染的 Mermaid 图。
-## 6. 下一步建议
+It is not yet a full DeerFlow-style production harness. The current version still relies on fallback logic for some task classes and does not yet use live web retrieval as a first-class tool.
 
-这版先解决“能跑”“能持久化”“能经由 API 调用”和“能继续扩 DearFlow 式能力”几个目标。下一轮建议继续加：
+## Roadmap
 
-1. 把占位型 `tools` 换成真实 web / filesystem / shell tools
-2. 把现在的 SQLite store 接到更细粒度的 LangGraph checkpoint
-3. 加真正的 `subagent parallelism`
-4. 加 `sandbox`
-5. 加 `Web UI`
-6. 加 `skills`
+- replace planning-only tools with real web, file, and shell tools
+- add live source retrieval with citations
+- add runtime parallel subagent execution
+- harden checkpointing and resume behavior
+- improve the web UI into a richer chat and trace console
+- add skills, sandboxing, and evals
 
-## 7. 和 DeerFlow 的关系
+## Development Notes
 
-这个 starter 借鉴的是 DeerFlow 的几个核心思路：
+- `.env` is intentionally ignored
+- `.venv`, local data, and generated thread artifacts are intentionally ignored
+- the project currently writes runtime data under `.multi_agent_data/`
+- generated demo threads live under `APP_DEMO/threads/`
 
-- 用 `LangGraph` 管 agent workflow
-- 把不同 agent 的职责拆开
-- 把模型接入层独立出去
-- 先做 lead agent orchestration，再往上叠加 memory、sandbox、skills
+## Relationship to DeerFlow
 
-但它还不是 DeerFlow 那种完整的 super agent harness，目前只是一个适合启动项目的最小后端骨架。
+This starter borrows the high-level ideas:
+
+- graph-based agent orchestration
+- explicit role separation
+- model wiring as its own layer
+- gradual layering of memory, tools, sandboxing, and skills
+
+But it deliberately starts smaller so it is easier to run and evolve in a local workspace.
+
+## License
+
+This project is released under the MIT License. See [LICENSE](/Users/kevin/AGIProj/multi-agent/LICENSE).
