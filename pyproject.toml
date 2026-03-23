@@ -1,0 +1,26 @@
+[project]
+name = "multi-agent"
+version = "0.1.0"
+description = "A minimal LangGraph multi-agent starter inspired by DeerFlow."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "langgraph>=0.6.0",
+    "langchain>=0.3.0",
+    "langchain-openai>=0.3.0",
+    "fastapi>=0.115.0",
+    "pydantic>=2.8.0",
+    "pydantic-settings>=2.4.0",
+    "python-dotenv>=1.0.1",
+    "uvicorn>=0.34.0",
+]
+
+[project.scripts]
+multi-agent = "app.main:main"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["app"]

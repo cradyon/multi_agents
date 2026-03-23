@@ -1,0 +1,12 @@
+.env
+.venv/
+.multi_agent_data/
+.vscode/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Generated demo artifacts
+APP_DEMO/threads/
+APP_DEMO/workflows/*.ppm
