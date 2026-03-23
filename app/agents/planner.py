@@ -11,7 +11,6 @@ from app.tools import plan_command, plan_file_structure, plan_web_research
 def planner_node(state: AgentState) -> AgentState:
     task = state["task"]
     profile = infer_task_profile(task)
-    model = create_chat_model(role="planner")
     file_plan = plan_file_structure(task)
     command_plan = plan_command(task, cwd=".", allow_network=False, allow_write=False)
     research_plan = plan_web_research(task, context="langgraph multi-agent architecture")
@@ -40,6 +39,7 @@ def planner_node(state: AgentState) -> AgentState:
         ),
     ]
     try:
+        model = create_chat_model(role="planner")
         response = model.invoke(prompt)
         parsed = extract_json_object(response.content if isinstance(response.content, str) else str(response.content))
     except Exception:

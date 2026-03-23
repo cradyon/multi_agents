@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     planner_temperature: float = 0.1
     worker_temperature: float = 0.2
     synthesizer_temperature: float = 0.2
+    cors_allow_origins: str = "*"
+    auth_secret_key: str = "local-dev-auth-secret"
     data_dir: Path = Path(".multi_agent_data")
     sqlite_path: Path = Path(".multi_agent_data/runs.db")
     coordination_dir: Path = Path("APP_DEMO")

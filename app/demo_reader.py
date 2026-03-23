@@ -63,6 +63,18 @@ def read_thread(thread_id: str) -> dict[str, Any]:
     return payload
 
 
+def read_thread_summary(thread_id: str) -> dict[str, Any] | None:
+    thread_dir = _threads_root() / thread_id
+    thread_file = thread_dir / "thread.json"
+    if not thread_file.exists():
+        return None
+
+    payload = json.loads(thread_file.read_text(encoding="utf-8"))
+    payload["path"] = str(thread_dir)
+    payload["progress"] = _compute_progress(payload)
+    return payload
+
+
 def _read_text(path: Path) -> str:
     if not path.exists():
         return ""
@@ -76,3 +88,21 @@ def _read_json(path: Path) -> dict[str, Any]:
         return json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return {}
+
+
+def _compute_progress(payload: dict[str, Any]) -> int:
+    status = payload.get("status", "unknown")
+    if status in {"completed", "failed"}:
+        return 100
+
+    current_step = payload.get("current_step", "")
+    step_progress = {
+        "queued": 2,
+        "planner": 15,
+        "researcher": 45,
+        "executor": 70,
+        "synthesizer": 90,
+        "completed": 100,
+        "failed": 100,
+    }
+    return step_progress.get(current_step, 0)

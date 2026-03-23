@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Iterator
 from uuid import uuid4
 
-from app.persistence.models import CheckpointRecord, RunSummary
+from app.persistence.models import CheckpointRecord, RunSummary, UserRecord
 
 
 def _json_dumps(value: dict[str, Any]) -> str:
@@ -89,6 +89,17 @@ class _SQLiteBaseStore:
             conn.execute(
                 "CREATE INDEX IF NOT EXISTS idx_summaries_thread_created ON run_summaries(thread_id, created_at DESC)"
             )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS users (
+                    user_id TEXT PRIMARY KEY,
+                    username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                    password_hash TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
 
 
 class SQLiteCheckpointStore(_SQLiteBaseStore):
@@ -213,3 +224,46 @@ class SQLiteMemoryStore(_SQLiteBaseStore):
     def latest(self, thread_id: str) -> RunSummary | None:
         summaries = self.list(thread_id=thread_id, limit=1)
         return summaries[0] if summaries else None
+
+
+class SQLiteUserStore(_SQLiteBaseStore):
+    """User store for simple auth backed by the same SQLite database."""
+
+    def create_user(self, username: str, password_hash: str) -> UserRecord:
+        user_id = uuid4().hex
+        created_at = datetime.utcnow().isoformat()
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO users (user_id, username, password_hash, created_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (user_id, username, password_hash, created_at),
+            )
+        return UserRecord(
+            user_id=user_id,
+            username=username,
+            password_hash=password_hash,
+            created_at=_parse_dt(created_at),
+        )
+
+    def get_user(self, username: str) -> UserRecord | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT user_id, username, password_hash, created_at
+                FROM users
+                WHERE username = ?
+                COLLATE NOCASE
+                LIMIT 1
+                """,
+                (username,),
+            ).fetchone()
+        if row is None:
+            return None
+        return UserRecord(
+            user_id=row["user_id"],
+            username=row["username"],
+            password_hash=row["password_hash"],
+            created_at=_parse_dt(row["created_at"]),
+        )

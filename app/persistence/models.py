@@ -28,3 +28,11 @@ class RunSummary:
     metadata: dict[str, Any] = field(default_factory=dict)
     summary_id: str | None = None
     created_at: datetime = field(default_factory=utc_now)
+
+
+@dataclass(slots=True)
+class UserRecord:
+    username: str
+    password_hash: str
+    user_id: str | None = None
+    created_at: datetime = field(default_factory=utc_now)
